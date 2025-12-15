@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS file_metadata;
+
+CREATE TABLE file_metadata (
+    uuid BINARY(16) PRIMARY KEY,
+    length BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

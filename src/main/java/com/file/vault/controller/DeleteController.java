@@ -3,7 +3,9 @@ package com.file.vault.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
 
+@RestController
 public class DeleteController {
 
     @DeleteMapping(value = "/documents/{id}", consumes = "multipart/form-data")
