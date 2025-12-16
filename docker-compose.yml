@@ -38,6 +38,24 @@ services:
       - redis_data:/data
     networks:
       - filevault-net
+  app:
+    build: .
+    container_name: filevault-app
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - minio
+      - redis
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/file_vault
+      SPRING_DATASOURCE_USERNAME: file_vault
+      SPRING_DATASOURCE_PASSWORD: file_vault
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      SPRING_SQL_INIT_MODE: never
+    networks:
+      - filevault-net
 
 volumes:
   mysql_data:
