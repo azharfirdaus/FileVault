@@ -28,10 +28,21 @@ services:
       - minio_data:/data
     networks:
       - minio-net
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - filevault-net
 
 volumes:
   mysql_data:
   minio_data:
+  redis_data:
 
 networks:
   filevault-net: # 👈 define custom bridge network

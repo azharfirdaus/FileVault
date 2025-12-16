@@ -1,8 +1,9 @@
 package com.file.vault.controller;
 
+import com.file.vault.cache.BinaryCacheService;
 import com.file.vault.entity.FileMetadata;
 import com.file.vault.repository.FileMetadataRepository;
-import com.file.vault.repository.ObjectStorageService;
+import com.file.vault.client.MiniOClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -24,17 +25,31 @@ public class DownloadController {
 
     private final FileMetadataRepository fileMetadataRepository;
 
-    private final ObjectStorageService objectStorageService;
+    private final MiniOClient miniOClient;
+
+    private final BinaryCacheService binaryCacheService;
 
     public DownloadController(@Autowired FileMetadataRepository fileMetadataRepository,
-                              @Autowired ObjectStorageService objectStorageService) {
+                              @Autowired MiniOClient miniOClient,
+                              @Autowired BinaryCacheService binaryCacheService) {
         this.fileMetadataRepository = fileMetadataRepository;
-        this.objectStorageService = objectStorageService;
+        this.miniOClient = miniOClient;
+        this.binaryCacheService = binaryCacheService;
     }
 
     @GetMapping(value = "/documents/{id}")
-    public ResponseEntity<Resource> download(@PathVariable("id") String id) throws Exception {
+    public ResponseEntity<?> download(@PathVariable("id") String id) throws Exception {
         UUID uuid = UUID.fromString(id);
+
+        byte[] data = binaryCacheService.getCache(uuid);
+        if (data != null){
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\""+id+"\"")
+                    .contentType(MediaType.parseMediaType(MediaType.APPLICATION_OCTET_STREAM_VALUE))
+                    .body(data);
+        }
+
         Optional<FileMetadata> result = fileMetadataRepository.findById(uuid);
 
         if (result.isEmpty()){
@@ -42,15 +57,16 @@ public class DownloadController {
         }
 
         try {
-            InputStream inputStream = objectStorageService.download(uuid);
+            InputStream inputStream = miniOClient.download(uuid);
+            data = inputStream.readAllBytes();
+            binaryCacheService.saveCache(uuid, data);
             return ResponseEntity
                     .status(HttpStatus.OK)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\""+id+"\"")
                     .contentType(MediaType.parseMediaType(MediaType.APPLICATION_OCTET_STREAM_VALUE))
-                    .body(new InputStreamResource(inputStream));
+                    .body(data);
         } catch (NoSuchKeyException e) {
             return ResponseEntity.notFound().build();
         }
     }
-
 }

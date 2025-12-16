@@ -1,8 +1,9 @@
 package com.file.vault.controller;
 
+import com.file.vault.cache.BinaryCacheService;
 import com.file.vault.entity.FileMetadata;
 import com.file.vault.repository.FileMetadataRepository;
-import com.file.vault.repository.ObjectStorageService;
+import com.file.vault.client.MiniOClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,12 +19,16 @@ public class DeleteController {
 
     private final FileMetadataRepository fileMetadataRepository;
 
-    private final ObjectStorageService objectStorageService;
+    private final MiniOClient miniOClient;
+
+    private final BinaryCacheService binaryCacheService;
 
     public DeleteController(@Autowired FileMetadataRepository fileMetadataRepository,
-                              @Autowired ObjectStorageService objectStorageService) {
+                            @Autowired MiniOClient miniOClient,
+                            @Autowired BinaryCacheService binaryCacheService) {
         this.fileMetadataRepository = fileMetadataRepository;
-        this.objectStorageService = objectStorageService;
+        this.miniOClient = miniOClient;
+        this.binaryCacheService = binaryCacheService;
     }
 
     @DeleteMapping(value = "/documents/{id}")
@@ -38,10 +43,12 @@ public class DeleteController {
             fileMetadataRepository.delete(result.get());
 
             try {
-                objectStorageService.delete(uuid);
+                miniOClient.delete(uuid);
             } catch (NoSuchKeyException e) {
                 // do nothing
             }
+
+            binaryCacheService.removeCacheAsync(uuid);
         }
 
         return ResponseEntity

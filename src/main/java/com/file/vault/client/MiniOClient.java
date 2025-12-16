@@ -1,4 +1,4 @@
-package com.file.vault.repository;
+package com.file.vault.client;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -12,13 +12,13 @@ import java.io.InputStream;
 import java.util.UUID;
 
 @Service
-public class ObjectStorageService {
+public class MiniOClient {
 
     private final S3Client s3Client;
     private final String bucket;
 
-    public ObjectStorageService(S3Client s3Client,
-                                @Value("${minio.bucket}") String bucket){
+    public MiniOClient(S3Client s3Client,
+                       @Value("${minio.bucket}") String bucket){
         this.s3Client = s3Client;
         this.bucket = bucket;
     }
