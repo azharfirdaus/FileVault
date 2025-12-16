@@ -3,6 +3,7 @@ package com.file.vault.controller;
 import com.file.vault.entity.FileMetadata;
 import com.file.vault.helper.PdfValidationHelper;
 import com.file.vault.repository.FileMetadataRepository;
+import com.file.vault.repository.ObjectStorageService;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @RestController
@@ -20,16 +22,20 @@ public class UploadController {
 
     private final FileMetadataRepository fileMetadataRepository;
 
+    private final ObjectStorageService objectStorageService;
+
     private final PdfValidationHelper pdfValidationHelper;
 
     public UploadController(@Autowired FileMetadataRepository fileMetadataRepository,
+                            @Autowired ObjectStorageService objectStorageService,
                             @Autowired PdfValidationHelper pdfValidationHelper){
         this.fileMetadataRepository = fileMetadataRepository;
+        this.objectStorageService = objectStorageService;
         this.pdfValidationHelper = pdfValidationHelper;
     }
 
     @PostMapping(value = "/documents", consumes = "multipart/form-data")
-    public ResponseEntity<UploadController.Response> upload(@RequestPart("file") MultipartFile file) {
+    public ResponseEntity<UploadController.Response> upload(@RequestPart("file") MultipartFile file) throws Exception{
 
         if (file.isEmpty()){
             return ResponseEntity
@@ -43,9 +49,18 @@ public class UploadController {
                     .body(new UploadController.Response("not valid pdf file"));
         }
 
-        FileMetadata fileMetadata = new FileMetadata(UUID.randomUUID(), file.getSize());
+        UUID uuid = UUID.randomUUID();
 
-        fileMetadataRepository.save(fileMetadata);
+        FileMetadata fileMetadata = new FileMetadata(uuid, file.getSize());
+
+        objectStorageService.upload(uuid, file.getInputStream(), file.getSize());
+
+        try {
+            fileMetadataRepository.save(fileMetadata);
+        } catch (Exception e){
+            objectStorageService.delete(uuid);
+            throw new Exception();
+        }
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
